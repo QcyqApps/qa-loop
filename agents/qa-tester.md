@@ -108,18 +108,13 @@ Someone may also watch your sessions live without taking control. Work as usual.
 
 ## API cases (`surface: "api"`)
 
-Call the API from a page of the app, in the role's session, so cookies apply and the trace records the exchange. Write each call with Write as a script in the case's evidence folder, then run it. The script is part of the evidence, and the developer can run it again. For example, `evidence/<ID>/api-01.js`:
-
-```js
-async page => page.evaluate(async () => {
-  const r = await fetch('/api/users?status=disabled');
-  return { status: r.status, body: (await r.text()).slice(0, 3000) };
-})
-```
+Call the API from a page of the app, in the role's session, so cookies apply and the trace records the exchange. Write each call with Write as a script in the case's evidence folder, e.g. `evidence/<ID>/api-01.js`, then run it:
 
 ```bash
 cd "RUN" && playwright-cli -s=KEY-manager run-code --filename=evidence/<ID>/api-01.js
 ```
+
+The script is one function, `async page => page.evaluate(async () => { … })`. Inside the page, it sends the request with the browser's own HTTP API, the way the app's code does. It returns `{ status, body }`, with the body cut to its first 3000 characters. The script is part of the evidence, and the developer can run it again.
 
 Check the contract, not just the status code:
 
@@ -132,16 +127,9 @@ Check the contract, not just the status code:
 
 POST, PUT, PATCH and DELETE are data changes, so rule 3 applies. The one exception is a read that the app itself sends as a POST, such as a list query with filters in the body. Replaying it with different parameters is still a read. Say so in the case notes.
 
-When the API lives at `env.json` → `api_base_url` and the app sends a bearer token, attach the app's own token **inside** `page.evaluate`, and never return, print or write it. The script reads it from the page each time it runs:
+When the API lives at `env.json` → `api_base_url` and the app sends a bearer token, the script reads the app's own token from the page's storage and sets the `Authorization` header itself, **inside** `page.evaluate`. It never returns, prints or writes the token, so the token stays out of the evidence.
 
-```js
-async page => page.evaluate(async () => {
-  const r = await fetch('https://api.example.com/v1/x', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } });
-  return { status: r.status, body: (await r.text()).slice(0, 3000) };
-})
-```
-
-Take the storage key from the role's marker (`jwt_storage_key`), or from the request headers you can see the app sending. Access tokens are often short-lived, and the identity script shows `token_expires`. Reload the app shortly before API probes so it refreshes the token itself. A 401 caused by your own expired token is a setup problem: refresh and retry. It is not a finding. If CORS blocks in-page `fetch`, use `page.request` in `run-code`. That traffic is not traced, so save each exchange (method, URL, status, body excerpt) with Write to `evidence/<ID>/api-NN.json`.
+Take the storage key from the role's marker (`jwt_storage_key`), or from the request headers you can see the app sending. Access tokens are often short-lived, and the identity script shows `token_expires`. Reload the app shortly before API probes so it refreshes the token itself. A 401 caused by your own expired token is a setup problem: refresh and retry. It is not a finding. If CORS blocks the in-page request, use `page.request` in the script instead. That traffic is not traced, so save each exchange (method, URL, status, body excerpt) with Write to `evidence/<ID>/api-NN.json`.
 
 ## How to judge
 
@@ -165,7 +153,7 @@ Report what you notice beyond a case's expected result as **findings**:
 
 **Facts and guesses stay apart.** `actual` holds only what you observed. A suspected cause goes in `hypothesis`, which the report labels as unverified. A console error message alone doesn't prove an operation failed, so check the UI or the state. Something seen once is not confirmed.
 
-**Leave a repro.** For every FAIL, and for every critical or high BUG, write `evidence/<ID>/repro.js`. It is a single function, `async page => { …; return { reproduced, observed, expected }; }`, that starts from `base_url` in the role's session and replays the minimal steps. It has no `require` or `process`; `fetch` and timers are available. Run it:
+**Leave a repro.** For every FAIL, and for every critical or high BUG, write `evidence/<ID>/repro.js`. It is a single function, `async page => { …; return { reproduced, observed, expected }; }`, that starts from `base_url` in the role's session and replays the minimal steps. It has no `require` or `process`, but it can send HTTP requests from the page and use timers. Run it:
 
 ```bash
 cd "RUN" && playwright-cli -s=KEY-<role> run-code --filename=evidence/<ID>/repro.js

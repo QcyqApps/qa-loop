@@ -1,12 +1,19 @@
 # Changelog
 
+## 0.2.2 — 2026-10-07
+
+More fixes for the plugin directory's validation findings.
+
+- No text file names a bundled image any more.
+- The tester's instructions describe how to call an API from the page in words, without inline code that sends requests.
+
 ## 0.2.1 — 2026-10-07
 
 Fixes for the plugin directory's validation findings.
 
-- A listing icon (`.claude-plugin/icon.png`, source in `docs/icon.svg`).
+- A listing icon, with its SVG source in the docs folder.
 - The tester writes each API call as a script in the case's evidence folder and runs it from there, so the call can be replayed later.
-- The example report's screenshots moved to `docs/example/screenshots/`, so test fixtures no longer look like references to bundled images.
+- The example report's screenshots moved to a flat folder, so test fixtures no longer look like references to bundled images.
 - The demo server no longer builds URLs from the request's Host header, and the tests no longer use credential-like variable names.
 
 ## 0.2.0 — 2026-10-07
