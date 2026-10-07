@@ -3,6 +3,7 @@
 # browser states in .qa/auth/<role>.json (gitignored), captured by /qa-loop:setup.
 
 language: en                    # language of reports and Jira comments: en | pl
+watch: false                    # true: always open the live view of the tester's browser (like --watch)
 
 environments:
   default: staging

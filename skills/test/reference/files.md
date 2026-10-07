@@ -131,3 +131,6 @@ Besides the fields shown in the qa-tester agent:
 - `repro`: `evidence/<ID>/repro.js`, a playwright-cli `run-code` function that replays the failure and returns `{ reproduced, observed, expected }`.
 - `category` on findings.
 - `created_data`: everything the run created or changed.
+- `assisted` on cases: what a human did in the tester's session during an assist, in one sentence.
+- `human_steps`: `evidence/<ID>/human-steps.js`, the recorded steps of that assist, written by `qa-loop assist stop`. It is a `run-code` function, and typed secrets are masked.
+- `evidence/<ID>/replay.webm`: a video of a failure's replay, listed in `evidence` like screenshots.

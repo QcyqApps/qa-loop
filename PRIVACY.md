@@ -14,7 +14,8 @@ Everything is in your project's `.qa/` folder:
 
 - `config.yml` and `knowledge.md`: your test setup, and the project facts you agreed to save.
 - `auth/<role>.json`: a saved browser login (cookies and local storage) for each test role.
-- `runs/`: test plans, reports and evidence, such as screenshots, page snapshots, console and network logs, and Playwright traces. Session cookies, authorization headers and tokens are redacted from the evidence.
+- `runs/`: test plans, reports and evidence, such as screenshots, page snapshots, console and network logs, Playwright traces and replay videos. Session cookies, authorization headers and tokens are redacted from the evidence.
+- When you help the tester in its browser session, `runs/` also keeps the steps you took. Values you type into password, PIN or code fields are masked.
 
 qa-loop's `.qa/.gitignore` keeps `auth/` and `runs/` out of git. The files stay until you delete them.
 

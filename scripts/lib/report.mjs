@@ -30,7 +30,7 @@ const TEXT = {
       problems: 'Uwagi do jakości przebiegu', fixFirst: 'Do poprawy w pierwszej kolejności', counts: 'Znaleziska',
       questions: (n) => (n === 1 ? 'pytanie' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'pytania' : 'pytań'), hypothesis: 'Hipoteza (niezweryfikowana)', repro: 'Automatyczne odtworzenie',
       consoleHealth: 'Błędy w konsoli (wszystkie przypadki)', message: 'Komunikat', count: 'Ile razy', cases: 'Przypadki',
-      createdData: 'Dane utworzone podczas testu',
+      createdData: 'Dane utworzone podczas testu', assisted: 'Pomoc człowieka', assistedCases: 'Z pomocą człowieka',
       reproHowTo: 'Skrypt repro uruchamiasz w sesji zalogowanej roli: `playwright-cli -s=<sesja> run-code --filename=<plik>`; zwraca { reproduced, observed }.',
       footer: 'Raport: qa-loop. Werdykt liczony regułami z wyników testera, nie z jego opinii.',
     },
@@ -68,6 +68,7 @@ const TEXT = {
       problems: 'Run quality notes', fixFirst: 'Fix first', counts: 'Findings', questions: (n) => (n === 1 ? 'question' : 'questions'),
       hypothesis: 'Hypothesis (unverified)', repro: 'Automated reproduction', consoleHealth: 'Console errors (all cases)',
       message: 'Message', count: 'Count', cases: 'Cases', createdData: 'Data created during the test',
+      assisted: 'Human help', assistedCases: 'With human help',
       reproHowTo: 'Run a repro script in a session logged in as the role: `playwright-cli -s=<session> run-code --filename=<file>`; it returns { reproduced, observed }.',
       footer: 'Report: qa-loop. The verdict is computed by rules from the tester’s results, not from its opinion.',
     },
@@ -82,6 +83,7 @@ const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 const STATE_ORDER = { blocking: 0, open: 1, follow_up: 2, dismissed: 3 };
 const PROBLEM_STATUSES = ['FAIL', 'UNCONFIRMED', 'FLAKY'];
 const IMAGE = /\.(png|jpe?g|webp)$/i;
+const VIDEO = /\.(webm|mp4)$/i;
 
 export const texts = (lang) => TEXT[lang] || TEXT.en;
 
@@ -98,7 +100,7 @@ const link = (path) => `[${path.split('/').pop()}](${encodeURI(path)})`;
 const image = (path) => `![${path.split('/').pop()}](${encodeURI(path)})`;
 
 function pickEvidence(evidence = [], max = 3) {
-  const rank = (p) => (IMAGE.test(p) ? 0 : /trace\.zip$/i.test(p) ? 1 : 2);
+  const rank = (p) => (IMAGE.test(p) ? 0 : VIDEO.test(p) ? 1 : /trace\.zip$/i.test(p) ? 2 : 3);
   return [...evidence].sort((a, b) => rank(a) - rank(b)).slice(0, max);
 }
 
@@ -158,6 +160,7 @@ function detailBlock(lang, item, { local, heading = '###' }) {
   if (!isFinding && item.status_reason) meta.push(`**${t.h.why}:** ${t.statusReason[item.status_reason] || item.status_reason}`);
   lines.push(`- ${meta.join(' · ')}`);
   if (item.decision?.note) lines.push(`- ${item.decision.note}`);
+  if (item.assisted) lines.push(`- **${t.h.assisted}:** ${item.assisted}${local && item.human_steps ? ` · ${link(item.human_steps)}` : ''}`);
   if (local && item.repro) lines.push(`- **${t.h.repro}:** ${link(item.repro)}`);
   if (local && item.evidence?.length) {
     lines.push(`- **${t.h.evidence}:** ${pickEvidence(item.evidence, 5).map(link).join(' · ')}`);
@@ -185,6 +188,15 @@ function partition(normalized) {
     followUps: sortFindings(findings.filter(isFollowUp)),
     untested: cases.filter((c) => ['BLOCKED', 'NOT_RUN'].includes(c.status)),
   };
+}
+
+// Cases a human helped with are listed up front, so nobody mistakes them for fully automated checks.
+function assistedLine(lang, cases, { local }) {
+  const t = texts(lang);
+  const helped = cases.filter((c) => String(c.assisted || '').trim());
+  if (!helped.length) return null;
+  const items = helped.map((c) => `${c.id} (${c.assisted}${local && c.human_steps ? `, ${link(c.human_steps)}` : ''})`);
+  return `🧑 **${t.h.assistedCases}:** ${items.join('; ')}`;
 }
 
 function countsLine(lang, findings) {
@@ -225,6 +237,8 @@ export function renderReport({ lang = 'en', run, plan, normalized, verdict, resu
   if (counts) out.push(counts, '');
   const top = fixFirst(lang, failedCases, shown);
   if (top.length) out.push(`**${t.h.fixFirst}:**`, '', ...top.map((line, i) => `${i + 1}. ${line}`), '');
+  const helped = assistedLine(lang, normalized.cases, { local: true });
+  if (helped) out.push(helped, '');
   out.push(header(lang, run, plan), '');
 
   out.push(`## ${t.h.acceptance}`, '', `| # | ${t.h.criterion} | ${t.h.result} | ${t.h.proof} |`, '|---|---|---|---|');
@@ -294,6 +308,8 @@ export function renderJiraComment({ lang = 'en', run, plan, normalized, verdict,
   if (counts) out.push(counts, '');
   const top = fixFirst(lang, failedCases, shown);
   if (top.length) out.push(`**${t.h.fixFirst}:**`, '', ...top.map((line, i) => `${i + 1}. ${line}`), '');
+  const helped = assistedLine(lang, normalized.cases, { local: false });
+  if (helped) out.push(helped, '');
   out.push(`${t.h.env}: ${plan.base_url || '—'} · ${run.created_at || ''} · ${t.h.mode}: ${plan.mode || 'standard'}`, '');
   out.push(`**${t.h.acceptance}**`, '', `| # | ${t.h.criterion} | ${t.h.result} |`, '|---|---|---|');
   for (const c of acceptance) {

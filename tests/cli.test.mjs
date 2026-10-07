@@ -36,6 +36,16 @@ test('run new -> check -> verdict writes a report', () => {
   );
   assert.equal(run(['check', '--run', dir], project).ok, true);
 
+  const assisted = { id: 'AC-1', status: 'PASS', assertion: '10 rows', evidence: ['evidence/AC-1/list.png'], human_steps: 'evidence/AC-1/human-steps.js' };
+  writeFileSync(join(dir, 'results.json'), JSON.stringify({ cases: [assisted], findings: [] }));
+  assert.deepEqual(run(['check', '--run', dir], project).issues, [
+    'results.json AC-1: human_steps needs assisted (what the human did)',
+    'results.json AC-1: human_steps file missing or empty: evidence/AC-1/human-steps.js',
+  ]);
+  writeFileSync(join(dir, 'evidence', 'AC-1', 'human-steps.js'), 'async page => {}');
+  writeFileSync(join(dir, 'results.json'), JSON.stringify({ cases: [{ ...assisted, assisted: 'entered the SMS code' }], findings: [] }));
+  assert.equal(run(['check', '--run', dir], project).ok, true);
+
   const outcome = run(['verdict', '--run', dir], project);
   assert.equal(outcome.verdict, 'ACCEPT');
   assert.match(readFileSync(join(dir, 'report.md'), 'utf8'), /ZAAKCEPTOWANE/);

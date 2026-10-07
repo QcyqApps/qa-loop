@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-07
+
+Watch the tester work, and lend it a hand.
+
+- `--watch` (or `watch: true` in the config) opens playwright-cli's dashboard: a live view of every browser session of the run, headless ones included.
+- Assist: when a step needs a person, such as a code from an SMS, a CAPTCHA or a state the tester can't reach, the tester asks for help. You take control of its session in the live view. `qa-loop assist start/stop` records your steps as a replayable `human-steps.js`, with values typed into password, PIN and code fields masked.
+- Reports and Jira comments list the cases done with human help up front.
+- Failure replays are recorded as video (`replay.webm`) with each action labeled. `qa-loop end` finishes a recording the tester left running.
+- New CLI commands: `qa-loop watch` and `qa-loop assist`.
+
 ## 0.1.1 — 2026-10-07
 
 Preparation for Anthropic's plugin directory.

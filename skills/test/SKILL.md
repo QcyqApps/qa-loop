@@ -2,7 +2,7 @@
 name: test
 description: Independent QA of a ticket in a real browser. Reads a Jira ticket (or a ticket file), asks for missing context, plans acceptance, exploratory and regression checks, runs them through a separate tester agent with evidence (trace, screenshots, console, network), and returns a rule-based verdict (ACCEPT / REJECT / NEEDS DECISION / UNTESTABLE) that can be posted back to Jira.
 when_to_use: Use when the user asks, in any language, to test, QA, verify or accept a ticket, e.g. "test PROJ-123", "QA this ticket", "does PROJ-123 meet its acceptance criteria", "przetestuj PROJ-123".
-argument-hint: "<JIRA-KEY | path/to/ticket.md> [--quick | --deep] [--retest]"
+argument-hint: "<JIRA-KEY | path/to/ticket.md> [--quick | --deep] [--retest] [--watch]"
 allowed-tools: Bash(qa-loop *) Bash(playwright-cli *)
 ---
 
@@ -34,6 +34,7 @@ Run `qa-loop preflight --from <ticket file, or the current directory>`.
 - `tools.playwright_cli: null` → the browser driver is missing. Offer to install it with `npm install -g @playwright/cli@latest`.
 - Read `.qa/config.yml` and `.qa/knowledge.md` if it exists. The knowledge file holds answers from earlier runs, so use them instead of asking again.
 - Mode: `--quick`, `--deep` or `standard` by default. Budgets per mode are in `config.budget`.
+- Live view: on with `--watch`, with `watch: true` in the config, or when the user asks to see the tester work.
 
 ## 2. Read the ticket
 
@@ -80,11 +81,24 @@ Show the plan as a compact table (ID, level, what, role, budget) with the total 
 1. `qa-loop env --run <run_dir>`. It checks the app and every role's saved login, and writes the browser network guard from `env.json`: `blocked_hosts` are always blocked, and with `strict_hosts` anything outside `allowed_hosts` is blocked too.
    - App unreachable → ask: start it (`config.environments.<env>.start`), VPN, or a different URL.
    - Missing or old login state → offer to capture it again (setup, step 4), or continue without that role, in which case its cases end up BLOCKED.
-2. Launch the agent `qa-loop:qa-tester` in the **foreground** with only this prompt:
+2. With the live view on, run `qa-loop watch --run <run_dir>`. A window opens that shows every browser session of the run as it happens, headless ones included. Tell the user:
+   - they can watch freely,
+   - they should take control (the lock icon) only when you ask, because the tester can't tell their clicks from its own.
+
+   If the window doesn't open, for example without a desktop session, say so and continue without it.
+3. Launch the agent `qa-loop:qa-tester` in the **foreground** with only this prompt:
    `RUN = <absolute run_dir>. Ticket key: <KEY>. Execute plan.json following your instructions.`
    On a retest, add `Retest: previous-results.json is in RUN; run the previous repro scripts and failed cases first.`
-3. If it returns `STATUS: NEEDS_INPUT`, ask its questions with AskUserQuestion, keeping its options and its recommendation. Then resume the same agent with SendMessage: the answers plus "Continue." Repeat until `STATUS: DONE`.
-4. If it stops without a status, resume it once with: "Finish: save results.json, run qa-loop check, return STATUS."
+4. If it returns `STATUS: NEEDS_INPUT`, handle its `ASSIST` items first, then its questions. Then resume the same agent with SendMessage: the outcomes and answers plus "Continue." Repeat until `STATUS: DONE`.
+   - **ASSIST**: the tester needs a human to do one step in its browser session. Ask "<task>?" with the options "I'll do it in the browser (recommended)" and "Skip: the case stays BLOCKED". On "I'll do it":
+     1. Run `qa-loop assist start --run <run_dir> --case <case> --session <session>`. It starts recording the session and opens the live view on it. If `live_view` is null, nobody can take control: run `assist stop` and tell the tester the assist isn't possible here.
+     2. Tell the user, in their language: select the session if needed, click the lock icon to take control, and do the task. If it turns out to need a password, they shouldn't type it. They answer "Couldn't do it" and say the login expired, and you refresh the login as in step 1.
+     3. Ask "Done?" with the options "Done (recommended)" and "Couldn't do it".
+     4. On either answer, run `qa-loop assist stop --run <run_dir> --case <case> --session <session>`. It saves the recorded steps with typed secrets masked.
+     5. Report the outcome to the tester. When it worked: "ASSIST <case> done: <human_steps> (<actions> actions), the session is at <page_url>." When it didn't: "ASSIST <case> not done: <the user's reason>."
+   - **Questions**: ask them with AskUserQuestion, keeping the tester's options and its recommendation.
+5. If it stops without a status, resume it once with: "Finish: save results.json, run qa-loop check, return STATUS."
+6. When the tester is done, close the live view if it was opened, by `--watch` or by an assist: `qa-loop watch --run <run_dir> --stop`.
 
 Don't test in the browser yourself, and don't fix the tester's output.
 

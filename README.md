@@ -35,8 +35,10 @@ orchestrator (your Claude Code session)
 qa-tester agent (separate context, black box: a hook blocks it from reading your code)
    • playwright-cli: a real browser with one saved login per role, verified by an identity marker
    • every case: Playwright trace, screenshots, DOM, console, network, with secrets redacted
-   • every failure replayed from a clean state, plus a repro script the developer can run
+   • every failure replayed from a clean state, recorded as video, plus a repro script the developer can run
    • needs a human? it returns questions; the orchestrator asks you and resumes it
+   • needs your hands, e.g. for an SMS code? you take control in the live view, and your steps are recorded
+   • --watch: a live view of every browser session while the tester works
    │
    ▼
 qa-loop verdict (code, not a model)
@@ -95,6 +97,7 @@ Run `/qa-loop:setup` once per project. It does three things:
 | `/qa-loop:test PROJ-123 --deep` | more regression, exploratory and API checks |
 | `/qa-loop:test path/to/ticket.md` | a ticket from a file |
 | `/qa-loop:test PROJ-123 --retest` | after a fix: the previous repro scripts and failed cases first, then everything again |
+| `/qa-loop:test PROJ-123 --watch` | the same run, with a live view of the tester's browser sessions (`watch: true` in the config makes it the default) |
 
 You can also ask in your own words, in any language, e.g. "test PROJ-123" or "przetestuj PROJ-123". Reports and Jira comments are in English or Polish (`language` in the config).
 
@@ -109,6 +112,10 @@ You can also ask in your own words, in any language, e.g. "test PROJ-123" or "pr
    - After you confirm, it posts the report to Jira and moves the ticket.
 3. **Re-test after a fix.** Run `/qa-loop:test PROJ-123 --retest`. The earlier failures' repro scripts run first, then the whole plan runs again for a new verdict.
 4. **Try it without a project.** Start the [demo app](#try-it-on-the-demo) and run `/qa-loop:test examples/demo-app/tickets/DEMO-1.md`. Expect REJECTED, with the planted bugs among the findings.
+5. **Watch it and lend a hand.** Run `/qa-loop:test PROJ-123 --watch`.
+   - A window shows every browser session of the run, live.
+   - When the tester needs something only you can do, such as a code from an SMS, qa-loop asks you. You take control of that session in the window and do it.
+   - Your steps are saved as a script the tester can replay, and the report lists the case as done with human help.
 
 ## Verdict rules
 
@@ -133,11 +140,13 @@ Every run gets `.qa/runs/<ticket>/<timestamp>/`, which is gitignored:
 ticket.md  plan.json  env.json  results.json  decisions.json
 report.md          ← the full report, with screenshots inline
 jira-comment.md    ← what gets posted to Jira
-evidence/AC-4/     ← screenshots, dom.yml, console.txt, network.txt, trace.zip, repro.js
+evidence/AC-4/     ← screenshots, dom.yml, console.txt, network.txt, trace.zip, repro.js, replay.webm
 ```
 
 - **`trace.zip`** is a Playwright trace: every step, the DOM before and after it, screenshots, console and network. Open it with the viewer bundled with playwright-cli. The report prints the exact command.
 - **`repro.js`** replays one failure in a logged-in session: `playwright-cli -s=<session> run-code --filename=repro.js`. It returns `{ reproduced, observed, expected }`.
+- **`replay.webm`** is a video of the failure's replay, with each action labeled.
+- **`human-steps.js`** holds what you did in the tester's session when it asked for help. It is replayable, and values typed into password, PIN or code fields are masked.
 
 ## Safety
 
@@ -148,7 +157,7 @@ Rules that code enforces:
 - **Black-box tester.** A hook limits the tester's Read, Grep, Glob and Write to `.qa/runs/`, so it can neither read your source nor change files.
 - **Frozen code during a run.** From the start of a run until the verdict, Edit and Write on product files are blocked, so results describe the tested code. `qa-loop run close` ends an abandoned run.
 - **Network guard.** `safety.blocked_hosts` (production) are blocked inside the browser. `strict_hosts: true` blocks everything outside `allowed_hosts`.
-- **Secrets.** Session cookies, auth headers, JWTs (also in URLs) and token query parameters are redacted from traces, logs and saved request bodies.
+- **Secrets.** Session cookies, auth headers, JWTs (also in URLs) and token query parameters are redacted from traces, logs and saved request bodies. When you help the tester, values you type into password, PIN or code fields are masked in the recorded steps.
 
 Rules the agents follow:
 
@@ -163,7 +172,7 @@ Traces and screenshots can contain data from the test environment. Keep `.qa/run
 On your machine, qa-loop runs:
 
 - its own Node.js scripts: the `qa-loop` command and the guard hook. They have no dependencies and need no install step.
-- [playwright-cli](https://github.com/microsoft/playwright-cli), which you install, to drive the browser.
+- [playwright-cli](https://github.com/microsoft/playwright-cli), which you install, to drive the browser. With `--watch`, or when you help the tester, it also opens its dashboard: a local window that shows the browser sessions.
 - `git` for the local diff, `zip` and `unzip` for traces, and `gh` if you use it.
 
 It connects to:
@@ -209,6 +218,8 @@ See also the [privacy policy](PRIVACY.md) and the [security policy](SECURITY.md)
   - Older trace viewers, including trace.playwright.dev, may not read traces from the Playwright version bundled with playwright-cli.
   - Use the command printed at the end of `report.md`, or ask Claude to run `qa-loop trace <path to trace.zip>`.
 - **Jira can't be read.** Connect an Atlassian MCP server, or save the ticket to a file and run `/qa-loop:test path/to/ticket.md`.
+- **The live view doesn't open.** It needs a desktop session, so it isn't available over SSH or in CI. The run works the same without it.
+- **The tester got confused after you clicked in the live view.** Take control only when qa-loop asks you to. The tester can't tell your clicks from its own.
 
 ## What comes from gstack
 

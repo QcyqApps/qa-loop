@@ -6,6 +6,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:pat
 import { execFileSync } from 'node:child_process';
 import { CASE_STATUSES, CATEGORIES, LEVELS, SEVERITIES, SURFACES, computeVerdict, countBy, normalize } from './lib/verdict.mjs';
 import { reasonLine, renderJiraComment, renderReport } from './lib/report.mjs';
+import { maskSecretFields, parseRecording, stepsScript } from './lib/steps.mjs';
 
 const USAGE = `qa-loop <command> [options]
   preflight [--from PATH]                       project, config, git and tool status
@@ -15,6 +16,9 @@ const USAGE = `qa-loop <command> [options]
   env --run DIR | [--url URL] [--state FILE]... app reachability, saved logins; with --run also the browser network guard
   begin --run DIR --case ID --session NAME      start a case: clear console/network, start the trace
   end --run DIR --case ID --session NAME        finish a case: save console, network, DOM and trace.zip
+  watch --run DIR [--session NAME] [--stop]     open the live view of the run's browser sessions; --stop closes it
+  assist start|stop --run DIR --case ID --session NAME
+                                                a human acts in the tester's session: record it, then save the steps (secrets masked)
   evidence --run DIR --case ID                  pack the latest playwright-cli trace into evidence/ID/trace.zip
   check --run DIR                               validate plan.json and results.json
   verdict --run DIR                             redact evidence, compute the verdict, write report.md and jira-comment.md
@@ -421,18 +425,25 @@ async function env(args) {
   print(result);
 }
 
-// Run playwright-cli for a session from the run directory, so relative --filename
-// paths land in the run. playwright-cli exits 0 on errors, so errors are parsed from output.
-function pw(runDir, session, cliArgs, timeout = 60000) {
+// Run playwright-cli from the run directory, so relative --filename paths land in the run
+// and sessions share the run's workspace. It exits 0 on errors, so errors are parsed from output.
+function playwrightCli(runDir, cliArgs, timeout = 60000) {
   try {
-    const out = execFileSync('playwright-cli', [`-s=${session}`, ...cliArgs], { cwd: runDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout });
-    const notOpen = /is not open, please run open first/.test(out);
-    const error = notOpen ? `browser session '${session}' is not open` : out.match(/### Error\s*\n(?:Error: )?(.+)/)?.[1] ?? null;
-    return { out: out.trim(), error };
+    const out = execFileSync('playwright-cli', cliArgs, { cwd: runDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout });
+    return { out: out.trim(), error: out.match(/### Error\s*\n(?:Error: )?(.+)/)?.[1] ?? null };
   } catch (err) {
-    return { out: '', error: err.code === 'ENOENT' ? 'playwright-cli is not installed' : String(err.stderr || err.message).trim() };
+    return { out: '', error: err.code === 'ENOENT' ? 'playwright-cli is not installed' : String(err.stderr || err.message).trim().split('\n')[0] };
   }
 }
+
+function pw(runDir, session, cliArgs, timeout = 60000) {
+  const result = playwrightCli(runDir, [`-s=${session}`, ...cliArgs], timeout);
+  return /is not open, please run open first/.test(result.out) ? { ...result, error: `browser session '${session}' is not open` } : result;
+}
+
+// The Playwright dashboard shows every playwright-cli session live, headless ones included,
+// and lets a human take control. It runs as one daemon; another call focuses the session.
+const openLiveView = (runDir, session) => playwrightCli(runDir, [...(session ? [`-s=${session}`] : []), 'show'], 90000);
 
 const SENSITIVE_HEADERS = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|x-auth-token|x-csrf-token|x-xsrf-token)$/i;
 const REDACTABLE_RESOURCE = /\.(json|html?|txt|xml)$/i;
@@ -636,6 +647,8 @@ function end(args) {
     files.push(rel(packed.path));
     if (packed.note) notes.push(packed.note);
   }
+  // A replay video the tester left running is finalized here (an error just means none was running).
+  pw(runDir, session, ['video-stop']);
 
   writeFileSync(join(caseDir, 'console.txt'), `${redact(consoleLines.join('\n'), secrets) || '(no console messages)'}\n`);
   writeFileSync(join(caseDir, 'network.txt'), `${redact(requests.join('\n'), secrets) || '(no requests)'}\n`);
@@ -643,8 +656,8 @@ function end(args) {
 
   const startedFile = join(caseDir, '.started');
   const duration = existsSync(startedFile) ? Math.round((Date.now() - Number(readFileSync(startedFile, 'utf8'))) / 1000) : null;
-  const screenshots = readdirSync(caseDir).filter((n) => /\.(png|jpe?g|webp)$/i.test(n)).sort().map((n) => rel(join(caseDir, n)));
-  print({ ok: true, case: id, files: [...screenshots, ...files], ...summarizeSignals(consoleLines, requests), duration_s: duration, notes });
+  const media = readdirSync(caseDir).filter((n) => /\.(png|jpe?g|webp|webm)$/i.test(n)).sort().map((n) => rel(join(caseDir, n)));
+  print({ ok: true, case: id, files: [...media, ...files], ...summarizeSignals(consoleLines, requests), duration_s: duration, notes });
 }
 
 function evidence(args) {
@@ -783,6 +796,9 @@ function validate(runDir) {
       if (['FAIL', 'FLAKY'].includes(c.status) && (!text(c.expected) || !text(c.actual))) issues.push(`${where}: ${c.status} needs expected and actual`);
       if (['BLOCKED', 'NOT_RUN', 'INCONCLUSIVE'].includes(c.status) && !text(c.blocked_reason)) issues.push(`${where}: ${c.status} needs blocked_reason`);
       if (c.repro && !exists(c.repro)) issues.push(`${where}: repro file missing or empty: ${c.repro}`);
+      if (c.assisted !== undefined && !text(c.assisted)) issues.push(`${where}: assisted must say what the human did`);
+      if (c.human_steps && !text(c.assisted)) issues.push(`${where}: human_steps needs assisted (what the human did)`);
+      if (c.human_steps && !exists(c.human_steps)) issues.push(`${where}: human_steps file missing or empty: ${c.human_steps}`);
     }
     if (results.created_data !== undefined && !(Array.isArray(results.created_data) && results.created_data.every(text))) {
       issues.push('results.json: created_data must be a list of descriptions');
@@ -889,6 +905,56 @@ function verdict(args) {
   print({ ok: true, ...summary });
 }
 
+function watch(args) {
+  const runDir = realpathSync(requireRun(args));
+  if (args.stop) {
+    const closed = playwrightCli(runDir, ['show', '--kill']);
+    print({ ok: !closed.error, live_view: closed.error ? null : 'closed', error: closed.error });
+    return;
+  }
+  const opened = openLiveView(runDir, text(args.session));
+  if (opened.error) fail(`the live view did not open: ${opened.error}`, { hint: 'it needs a desktop session; the run works the same without it' });
+  print({ ok: true, live_view: 'open', session: text(args.session) });
+}
+
+// A human acts in the tester's browser session (an SMS code, a CAPTCHA, a state the tester
+// can't reach). Their actions are recorded and saved as a replayable script, secrets masked.
+function assist(args) {
+  const action = args._[0];
+  if (!['start', 'stop'].includes(action)) fail('usage: qa-loop assist start|stop --run DIR --case ID --session NAME');
+  const { runDir, id, session, caseDir } = requireCase(args);
+  if (!session) fail('--session is required');
+  const startedFile = join(caseDir, '.assist-started');
+
+  if (action === 'start') {
+    const started = pw(runDir, session, ['recording-start']);
+    if (started.error) fail(started.error, { hint: 'the tester keeps its session open while it waits for help' });
+    writeFileSync(startedFile, String(Date.now()));
+    const view = openLiveView(runDir, session);
+    print({ ok: true, case: id, session, recording: true, live_view: view.error ? null : 'open', live_view_error: view.error });
+    return;
+  }
+
+  const stopped = pw(runDir, session, ['recording-stop']);
+  if (stopped.error) fail(stopped.error);
+  const recorded = parseRecording(stopped.out);
+  const masked = maskSecretFields(recorded.lines);
+  const secrets = collectSecrets(runDir);
+  const steps = masked.lines.map((line) => redact(line, secrets));
+  let file = null;
+  if (steps.length) {
+    file = join(caseDir, 'human-steps.js');
+    for (let n = 2; existsSync(file); n++) file = join(caseDir, `human-steps-${n}.js`);
+    writeFileSync(file, stepsScript(steps, { caseId: id, at: new Date().toISOString() }));
+  }
+  const duration = existsSync(startedFile) ? Math.round((Date.now() - Number(readFileSync(startedFile, 'utf8'))) / 1000) : null;
+  rmSync(startedFile, { force: true });
+  print({
+    ok: true, case: id, session, actions: steps.length, masked: masked.masked, duration_s: duration,
+    human_steps: file && relative(runDir, file), page_url: recorded.url && redact(recorded.url, secrets), steps,
+  });
+}
+
 function trace(args) {
   const path = args._[0] && resolve(args._[0]);
   if (!path || !existsSync(path)) fail('usage: qa-loop trace <path to trace.zip>');
@@ -909,6 +975,8 @@ const commands = {
   env: () => env(args),
   begin: () => begin(args),
   end: () => end(args),
+  watch: () => watch(args),
+  assist: () => assist(args),
   evidence: () => evidence(args),
   check: () => check(args),
   verdict: () => verdict(args),

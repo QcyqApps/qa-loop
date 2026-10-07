@@ -140,6 +140,21 @@ test('report shows counts, fix-first list, category, hypothesis, console health,
   assert.match(report, /qa-loop trace "evidence\/EX-1\/trace\.zip"/);
 });
 
+test('cases a human helped with are listed up front, with their recorded steps in the local report only', () => {
+  const cases = allPass();
+  cases[0] = { ...cases[0], assisted: 'entered the SMS code', human_steps: 'evidence/AC-1/human-steps.js' };
+  cases[1] = { id: 'AC-2', status: 'FAIL', expected: 'only disabled', actual: 'all users', reproductions: 2, evidence: ['evidence/AC-2/b.png', 'evidence/AC-2/trace.zip', 'evidence/AC-2/replay.webm'] };
+  const results = { cases, findings: [] };
+  const normalized = normalize({ plan, results, decisions: {}, fileExists: (p) => fileExists(p) || /AC-2\/(trace\.zip|replay\.webm)$/.test(p) });
+  const input = { lang: 'en', run: { ticket: 'DEMO-1' }, plan, normalized, verdict: computeVerdict(normalized), results };
+  const report = renderReport(input);
+  assert.match(report, /🧑 \*\*With human help:\*\* AC-1 \(entered the SMS code, \[human-steps\.js\]\(evidence\/AC-1\/human-steps\.js\)\)/);
+  assert.match(report, /\[b\.png\]\([^)]*\) · \[replay\.webm\]\([^)]*\) · \[trace\.zip\]/); // video before trace
+  const comment = renderJiraComment(input);
+  assert.match(comment, /With human help:\*\* AC-1 \(entered the SMS code\)/);
+  assert.doesNotMatch(comment, /human-steps\.js/);
+});
+
 test('question counts are pluralized in both languages', () => {
   const q = (id) => ({ id, type: 'QUESTION', related_to_change: 'yes', title: 'q', steps: ['x'], actual: 'y', evidence: [] });
   const render = (lang, n) => {
