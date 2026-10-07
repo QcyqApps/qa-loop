@@ -1,6 +1,6 @@
 {
   "name": "qa-loop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "An independent AI QA tester for Claude Code (plugin). No runtime dependencies.",
   "type": "module",

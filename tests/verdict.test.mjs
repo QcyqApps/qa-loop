@@ -116,7 +116,7 @@ test('a human can waive a blocked criterion or fail it', () => {
   assert.equal(decide({ cases }, { cases: { 'AC-2': { decision: 'fail' } } }).verdict, 'REJECT');
 });
 
-test('report shows counts, fix-first list, category, hypothesis, console health and created data', () => {
+test('report shows counts, fix-first list, category, hypothesis, console health, created data and the trace command', () => {
   const cases = allPass();
   cases[1] = { id: 'AC-2', status: 'FAIL', expected: 'only disabled', actual: 'all users', reproductions: 2, evidence: ['evidence/AC-2/b.png'], hypothesis: 'API ignores the filter', repro: 'evidence/AC-2/b.png' };
   const results = { cases, findings: [bug({ category: 'functional', hypothesis: 'stale response wins' })], created_data: ['User QA-1 in store Warsaw'] };
@@ -137,6 +137,7 @@ test('report shows counts, fix-first list, category, hypothesis, console health 
   assert.match(report, /Błędy w konsoli[\s\S]*TypeError: x \| 3 \| EX-1, EX-2/);
   assert.match(report, /Dane utworzone podczas testu[\s\S]*QA-1/);
   assert.match(report, /Automatyczne odtworzenie/);
+  assert.match(report, /qa-loop trace "evidence\/EX-1\/trace\.zip"/);
 });
 
 test('question counts are pluralized in both languages', () => {

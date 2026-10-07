@@ -280,7 +280,7 @@ export function renderReport({ lang = 'en', run, plan, normalized, verdict, resu
 
   const trace = [...failedCases, ...shown, ...normalized.cases].flatMap((x) => x.evidence || []).find((p) => /trace\.zip$/i.test(p));
   out.push('---', `${t.h.evidenceDir}: \`${run.run_dir || run.run_dir_rel || '.'}\``);
-  if (trace) out.push('', `${t.h.trace}:`, '', '```bash', `${run.trace_viewer || 'npx playwright show-trace'} "${run.run_dir ? `${run.run_dir}/${trace}` : trace}"`, '```');
+  if (trace) out.push('', `${t.h.trace}:`, '', '```bash', `${run.trace_viewer || 'qa-loop trace'} "${run.run_dir ? `${run.run_dir}/${trace}` : trace}"`, '```');
   if ([...failedCases, ...shown].some((x) => x.repro)) out.push('', t.h.reproHowTo);
   out.push('', `_${t.h.footer}_`, '');
   return out.join('\n');

@@ -100,6 +100,16 @@ You can also ask in your own words, in any language, e.g. "test PROJ-123" or "pr
 
 **What a run costs.** On a real ticket with 8 acceptance criteria and 14 cases, the tester worked for about 50 minutes and used about 280k tokens, plus the orchestrator's share. A quick run on the demo (4 cases) took 11 minutes and about 135k tokens. Budgets per mode are in the config.
 
+## Examples
+
+1. **Set up a project once.** Run `/qa-loop:setup`. It asks about environments and roles, writes `.qa/config.yml`, and opens a browser window where you log in once per role.
+2. **Test a ticket before you merge.** Run `/qa-loop:test PROJ-123`.
+   - qa-loop reads the ticket and its pull request, asks about unclear criteria, and shows the plan for your approval.
+   - It tests in the browser and returns a verdict with evidence, for example "REJECTED: AC-2 fails for the store manager role", with steps, screenshots and a repro script.
+   - After you confirm, it posts the report to Jira and moves the ticket.
+3. **Re-test after a fix.** Run `/qa-loop:test PROJ-123 --retest`. The earlier failures' repro scripts run first, then the whole plan runs again for a new verdict.
+4. **Try it without a project.** Start the [demo app](#try-it-on-the-demo) and run `/qa-loop:test examples/demo-app/tickets/DEMO-1.md`. Expect REJECTED, with the planted bugs among the findings.
+
 ## Verdict rules
 
 | Verdict | When |
@@ -148,13 +158,57 @@ Rules the agents follow:
 
 Traces and screenshots can contain data from the test environment. Keep `.qa/runs/` local.
 
+## What qa-loop runs, sends and stores
+
+On your machine, qa-loop runs:
+
+- its own Node.js scripts: the `qa-loop` command and the guard hook. They have no dependencies and need no install step.
+- [playwright-cli](https://github.com/microsoft/playwright-cli), which you install, to drive the browser.
+- `git` for the local diff, `zip` and `unzip` for traces, and `gh` if you use it.
+
+It connects to:
+
+- **Your app under test.** The browser opens the app at the URLs in `.qa/config.yml`, and `qa-loop env` checks that they respond. Pages can load other hosts, as they would for any visitor, except `blocked_hosts`. With `strict_hosts: true`, anything outside `allowed_hosts` is blocked too.
+- **Jira**, through the Atlassian connector you added to Claude. It reads the ticket. It posts a comment or changes the status only after you confirm.
+- **GitHub**, through `gh`, when a ticket links a pull request. It reads the pull request's latest commit and its list of changed files.
+
+qa-loop has no telemetry and sends nothing to its author. What the tester sees in the browser becomes part of your Claude Code session, like any other tool output: page snapshots, screenshots, and console and network summaries.
+
+It stores everything in your project's `.qa/` folder:
+
+- `config.yml` and `knowledge.md`. Knowledge is saved only after you agree.
+- `auth/<role>.json`: the saved browser login for each role (cookies and local storage). Treat these files like passwords.
+- `runs/`: plans, reports and evidence, with secrets redacted. They stay until you delete them.
+- `.gitignore`, which keeps `auth/` and `runs/` out of git.
+
+It changes Claude Code in two ways:
+
+- The plugin's hook allows or denies file tools, as described under [Safety](#safety).
+- `/qa-loop:setup` can add two allow rules to `.claude/settings.local.json`, `Bash(playwright-cli *)` and `Bash(qa-loop *)`, but only after you agree.
+
+See also the [privacy policy](PRIVACY.md) and the [security policy](SECURITY.md).
+
 ## Limitations
 
 - **Web apps only.** The UI, plus APIs called through the browser session. Data-model, migration and internal-job changes are checked only through what the UI or the API exposes. Emails and external integrations can't be observed.
 - **Evidence isn't attached to Jira**, because the Atlassian MCP can't upload files. The comment carries exact steps and expected vs actual.
 - **Questions go through the orchestrator.** Claude Code subagents can't ask the user questions themselves, so the orchestrator relays them.
-- **Claude Code only.** The plugin ships an executable in `bin/`, so it installs in Claude Code but not through claude.ai organization settings.
+- **Claude Code only.** qa-loop needs a local shell and a browser. Its executable in `bin/` also keeps claude.ai chat and Cowork from installing it.
 - **No Windows.** The scripts use a POSIX shell and `zip`.
+
+## Troubleshooting
+
+- **`playwright-cli: command not found`.** Install it with `npm install -g @playwright/cli@latest`. qa-loop is tested with 0.1.22.
+- **A role's login expired.** The tester stops with BLOCKED when a role's identity marker is missing. Run `/qa-loop:setup auth <role>` and log in again.
+- **Edits are blocked: "QA run … is in progress".**
+  - Product files stay read-only until the run has a verdict. A run that waits for your decisions stays open.
+  - To end an abandoned run, ask Claude to run `qa-loop run close`.
+- **A permission prompt for every browser step.** Pre-approve the commands in the Permissions step of `/qa-loop:setup`, or add `Bash(playwright-cli *)` and `Bash(qa-loop *)` to your allow rules.
+- **Pages break with `strict_hosts: true`.** Their assets or API calls go to hosts outside `allowed_hosts`. Add those hosts to `allowed_hosts` in `.qa/config.yml`.
+- **The trace won't open.**
+  - Older trace viewers, including trace.playwright.dev, may not read traces from the Playwright version bundled with playwright-cli.
+  - Use the command printed at the end of `report.md`, or ask Claude to run `qa-loop trace <path to trace.zip>`.
+- **Jira can't be read.** Connect an Atlassian MCP server, or save the ticket to a file and run `/qa-loop:test path/to/ticket.md`.
 
 ## What comes from gstack
 
@@ -196,6 +250,11 @@ claude --plugin-dir .                 # try local changes without installing
 ```
 
 The demo app is the end-to-end check. A change that stops the tester from finding its planted bugs is a regression. Issues and pull requests are welcome, especially new report languages, trackers other than Jira, and Windows support.
+
+## Support
+
+- **Questions and bug reports:** [GitHub issues](https://github.com/QcyqApps/qa-loop/issues).
+- **Security problems:** report them privately, as described in [SECURITY.md](SECURITY.md).
 
 ## License
 

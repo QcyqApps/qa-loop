@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-10-07
+
+Preparation for Anthropic's plugin directory.
+
+- Trace hints point to `qa-loop trace` and to the viewer bundled with playwright-cli. They used to suggest downloading a separate viewer, which can be too old to read the traces.
+- README: examples, troubleshooting, and what qa-loop runs, sends and stores.
+- New `PRIVACY.md` and `SECURITY.md`, plus the directory listing links (documentation, support, privacy policy) in `plugin.json`.
+- The tests build their fake JWT at runtime, so the repository contains no token-shaped strings.
+
 ## 0.1.0 — 2026-10-07
 
 First public release.

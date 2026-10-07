@@ -528,7 +528,7 @@ function packTrace(tracePath, caseDir, runDir) {
   const dir = join(caseDir, 'trace');
   rmSync(dir, { recursive: true, force: true });
   renameSync(stage, dir);
-  return { path: dir, note: 'zip is not installed; zip this folder to open it with `npx playwright show-trace`' };
+  return { path: dir, note: 'zip is not installed; zip this folder into trace.zip and open it with `qa-loop trace`' };
 }
 
 function requireCase(args) {
@@ -663,7 +663,7 @@ function evidence(args) {
   mkdirSync(caseDir, { recursive: true });
   const packed = packTrace(join(traces, latest.name), caseDir, runDir);
   const rel = relative(runDir, packed.path);
-  print({ ok: true, case: id, trace: rel, source: latest.name, note: packed.note ?? null, view: `npx playwright show-trace ${rel}` });
+  print({ ok: true, case: id, trace: rel, source: latest.name, note: packed.note ?? null, view: `qa-loop trace "${packed.path}"` });
 }
 
 // Re-apply redaction to everything already in evidence/ (text files and trace zips),
