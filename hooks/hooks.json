@@ -1,0 +1,17 @@
+{
+  "description": "qa-loop guards: the tester stays a black box inside .qa/runs/, and product files are read-only while a QA run is active",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/guard.mjs"]
+          }
+        ]
+      }
+    ]
+  }
+}

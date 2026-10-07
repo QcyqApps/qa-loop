@@ -1,0 +1,11 @@
+{
+  "name": "qa-loop",
+  "displayName": "QA Loop",
+  "version": "0.1.0",
+  "description": "An independent AI QA tester for Claude Code. Give it a Jira ticket: it asks what it needs, tests the app in a real browser (acceptance, exploratory, regression, API) and returns a rule-based verdict with evidence.",
+  "author": { "name": "asliwka", "url": "https://github.com/QcyqApps" },
+  "homepage": "https://github.com/QcyqApps/qa-loop",
+  "repository": "https://github.com/QcyqApps/qa-loop",
+  "license": "MIT",
+  "keywords": ["qa", "testing", "jira", "playwright", "browser", "acceptance-testing", "exploratory-testing"]
+}

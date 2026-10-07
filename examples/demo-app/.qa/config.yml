@@ -1,0 +1,42 @@
+# qa-loop config for the demo app. Start the app first: node examples/demo-app/server.mjs
+
+language: en
+
+environments:
+  default: local
+  local:
+    base_url: http://localhost:4317
+    allowed_hosts: [localhost]
+    start: node server.mjs        # run from examples/demo-app
+
+roles:
+  admin:
+    description: Administrator, sees users of every store
+    login_url: http://localhost:4317/login
+    marker: Administrator
+    demo_login: { username: admin, password: demo }      # demo only: non-secret
+  manager:
+    description: Store manager of Warsaw, sees only that store's users
+    login_url: http://localhost:4317/login
+    marker: Store manager Warsaw
+    demo_login: { username: manager, password: demo }    # demo only: non-secret
+
+data:
+  notes: |
+    Data lives in server memory: 10 users in 3 stores (Warsaw, Krakow, Gdansk),
+    some active, some disabled. Restarting the server restores the initial state.
+    A login session expires after 30 minutes.
+  test_data_prefix: QA-
+
+safety:
+  never:
+    - production
+  strict_hosts: true              # the demo loads nothing from other hosts
+
+jira:
+  cloud_id: ""
+
+budget:
+  quick:    { regression: 1, exploratory: 1, minutes: 10 }
+  standard: { regression: 1, exploratory: 3, minutes: 20 }
+  deep:     { regression: 2, exploratory: 6, minutes: 40 }

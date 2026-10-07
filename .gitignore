@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+.playwright-cli/
+.qa/runs/
+.qa/auth/
+examples/demo-app/.qa/runs/
+examples/demo-app/.qa/auth/

@@ -1,0 +1,12 @@
+{
+  "name": "qa-loop",
+  "description": "qa-loop: an independent AI QA tester for Claude Code",
+  "owner": { "name": "asliwka" },
+  "plugins": [
+    {
+      "name": "qa-loop",
+      "source": "./",
+      "description": "Test a Jira ticket like a manual tester: acceptance, exploratory, regression and API checks in a real browser, with evidence and a rule-based verdict."
+    }
+  ]
+}

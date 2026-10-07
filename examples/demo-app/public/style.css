@@ -1,0 +1,14 @@
+:root { font-family: system-ui, sans-serif; color: #1d1d1f; background: #f6f6f7; }
+body { margin: 0; }
+header { display: flex; gap: 16px; align-items: center; padding: 12px 24px; background: #1d1d1f; color: #fff; }
+header span { margin-left: auto; opacity: 0.8; }
+header a { color: #fff; }
+main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+.login { max-width: 320px; margin-top: 15vh; }
+form { display: grid; gap: 12px; }
+label { display: grid; gap: 4px; }
+input, select, button { font: inherit; padding: 6px 8px; }
+.error { color: #b00020; margin: 0; }
+.toolbar { display: flex; gap: 16px; align-items: end; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #e5e5e7; }

@@ -1,0 +1,54 @@
+# qa-loop: test environment contract for this project.
+# Commit this file. Never put passwords or tokens here: roles log in through saved
+# browser states in .qa/auth/<role>.json (gitignored), captured by /qa-loop:setup.
+
+language: en                    # language of reports and Jira comments: en | pl
+
+environments:
+  default: staging
+  staging:
+    base_url: https://app-staging.example.com
+    allowed_hosts:              # the tester never navigates anywhere else
+      - app-staging.example.com
+      - sso-staging.example.com
+  local:
+    base_url: http://localhost:3000
+    allowed_hosts: [localhost]
+    start: npm run dev          # how to start the app when it is not running
+
+roles:                          # who the tester can be
+  admin:
+    description: Full access
+    login_url: https://app-staging.example.com/login
+    marker: "Jan Admin"         # text visible only when logged in as this role (positive proof)
+  restricted:
+    description: A user without access to the admin area (for permission checks)
+    login_url: https://app-staging.example.com/login
+    marker: "Anna Viewer"
+
+data:
+  notes: |
+    Which test data exists, what may be created freely, and what must not be touched.
+  test_data_prefix: QA-
+
+safety:
+  never:                        # actions the tester must not perform
+    - production
+    - real payments
+    - emails or SMS to real customers
+    - bulk deletes
+  blocked_hosts:                # blocked in the browser during every run
+    - app.example.com
+    - api.example.com
+  strict_hosts: false           # true: block every host outside allowed_hosts (no CDNs needed)
+
+jira:
+  cloud_id: ""                  # Atlassian site id, filled by /qa-loop:setup
+  testing_status: In Testing    # where tickets wait for QA
+  on_accept: Done               # status / transition name after ACCEPT
+  on_reject: To Do              # status / transition name after REJECT
+
+budget:                         # how many cases per mode; minutes guide the tester
+  quick:    { regression: 1, exploratory: 1, minutes: 10 }
+  standard: { regression: 3, exploratory: 4, minutes: 25 }
+  deep:     { regression: 6, exploratory: 8, minutes: 60 }
