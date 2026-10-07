@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { CASE_STATUSES, CATEGORIES, LEVELS, SEVERITIES, SURFACES, computeVerdict, countBy, normalize } from './lib/verdict.mjs';
 import { reasonLine, renderJiraComment, renderReport } from './lib/report.mjs';
 import { maskSecretFields, parseRecording, stepsScript } from './lib/steps.mjs';
+import { probeUrl } from './lib/probe.mjs';
 
 const USAGE = `qa-loop <command> [options]
   preflight [--from PATH]                       project, config, git and tool status
@@ -385,14 +386,8 @@ async function env(args) {
     }
   }
   if (url) {
-    const started = Date.now();
-    try {
-      const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10000) });
-      result.url = { url, reachable: true, status: res.status, location: res.headers.get('location'), ms: Date.now() - started };
-    } catch (error) {
-      result.ok = false;
-      result.url = { url, reachable: false, error: error.cause?.code || error.name || String(error) };
-    }
+    result.url = await probeUrl(url);
+    if (!result.url.reachable) result.ok = false;
   }
   for (const file of (args.state || []).filter((s) => typeof s === 'string')) {
     const path = resolve(file);
@@ -959,7 +954,7 @@ function trace(args) {
   const path = args._[0] && resolve(args._[0]);
   if (!path || !existsSync(path)) fail('usage: qa-loop trace <path to trace.zip>');
   const core = bundledPlaywrightCore();
-  if (!core) fail('playwright-cli is not installed (npm install -g @playwright/cli@latest)');
+  if (!core) fail('playwright-cli is not installed; install it as described under Install in the qa-loop README');
   const extra = text(args.port) ? ['--port', args.port] : [];
   execFileSync('node', [core, 'show-trace', ...extra, path], { stdio: 'inherit' });
 }

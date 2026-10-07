@@ -37,7 +37,7 @@ test('values typed into secret-looking fields are masked; other steps stay repla
   ]);
   assert.equal(masked, 5);
   const code = lines.join('\n');
-  for (const secret of ["'demo'", "'tajne'", "'123456'", "y'", "'7'"]) assert.ok(!code.includes(secret), `${secret} must be masked`);
+  for (const typed of ["'demo'", "'tajne'", "'123456'", "y'", "'7'"]) assert.ok(!code.includes(typed), `${typed} must be masked`);
   assert.match(code, /name: 'Username' \}\)\.fill\('admin'\)/);
   assert.match(code, /press\('Enter'\)/);
   assert.match(code, /fill\('00-001'\)/);

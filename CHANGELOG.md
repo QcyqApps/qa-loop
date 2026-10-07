@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 — 2026-10-07
+
+Fixes for the plugin directory's validation findings.
+
+- A listing icon (`.claude-plugin/icon.png`, source in `docs/icon.svg`).
+- The tester writes each API call as a script in the case's evidence folder and runs it from there, so the call can be replayed later.
+- The example report's screenshots moved to `docs/example/screenshots/`, so test fixtures no longer look like references to bundled images.
+- The demo server no longer builds URLs from the request's Host header, and the tests no longer use credential-like variable names.
+
 ## 0.2.0 — 2026-10-07
 
 Watch the tester work, and lend it a hand.

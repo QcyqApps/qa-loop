@@ -24,8 +24,8 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 
 | # | Criterion | Result | Evidence / notes |
 |---|---|---|---|
-| AC-2 | "Disabled" shows only disabled users | ✅ PASS | Status column of all 4 rows = 'Disabled' (eval on table tbody), and the 4 names equal the 4 Disabled rows of the All view (10 rows); counte… [01-all-loaded.png](example/evidence/AC-2/01-all-loaded.png) [02-disabled-selected.png](example/evidence/AC-2/02-disabled-selected.png) |
-| AC-4 | A store manager sees only their store with every filter | ❌ FAIL | All: 4 rows, all Store = Warsaw, counter '4 users'. Active: 3 rows, all Store = Warsaw, counter '3 users'. Disabled (URL /users?status=disa… [01-all.png](example/evidence/AC-4/01-all.png) [02-active.png](example/evidence/AC-4/02-active.png) |
+| AC-2 | "Disabled" shows only disabled users | ✅ PASS | Status column of all 4 rows = 'Disabled' (eval on table tbody), and the 4 names equal the 4 Disabled rows of the All view (10 rows); counte… [01-all-loaded.png](example/screenshots/AC-2-01-all-loaded.png) [02-disabled-selected.png](example/screenshots/AC-2-02-disabled-selected.png) |
+| AC-4 | A store manager sees only their store with every filter | ❌ FAIL | All: 4 rows, all Store = Warsaw, counter '4 users'. Active: 3 rows, all Store = Warsaw, counter '3 users'. Disabled (URL /users?status=disa… [01-all.png](example/screenshots/AC-4-01-all.png) [02-active.png](example/screenshots/AC-4-02-active.png) |
 
 ## What is wrong and open questions
 
@@ -36,10 +36,10 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 - **Hypothesis (unverified):** The API applies the store scope of the logged-in manager for status=all and status=active but skips it for status=disabled (unverified).
 - **Reproduced:** 2×
 - **Automated reproduction:** `repro.js`
-- **Evidence:** [01-all.png](example/evidence/AC-4/01-all.png) · [02-active.png](example/evidence/AC-4/02-active.png) · [03-disabled.png](example/evidence/AC-4/03-disabled.png) · [04-disabled-after-reload-replay.png](example/evidence/AC-4/04-disabled-after-reload-replay.png) · `trace.zip`
+- **Evidence:** [01-all.png](example/screenshots/AC-4-01-all.png) · [02-active.png](example/screenshots/AC-4-02-active.png) · [03-disabled.png](example/screenshots/AC-4-03-disabled.png) · [04-disabled-after-reload-replay.png](example/screenshots/AC-4-04-disabled-after-reload-replay.png) · `trace.zip`
 
-![03-disabled.png](example/evidence/AC-4/03-disabled.png)
-![04-disabled-after-reload-replay.png](example/evidence/AC-4/04-disabled-after-reload-replay.png)
+![03-disabled.png](example/screenshots/AC-4-03-disabled.png)
+![04-disabled-after-reload-replay.png](example/screenshots/AC-4-04-disabled-after-reload-replay.png)
 
 ### F-1 · ❌ BUG (critical) [security] — GET /api/users?status=disabled returns disabled users of other stores to the Warsaw store manager (cause of AC-4 FAIL)
 - **Steps:** 1. Log in as 'Store manager Warsaw' 2. Open http://localhost:4317/users?status=all and select Status = Disabled (or call GET /api/users?status=disabled in that session)
@@ -48,10 +48,10 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 - **Hypothesis (unverified):** The store scope is not applied on the status=disabled branch of the API (unverified).
 - **Reproduced:** 2× · **Related to the change:** yes
 - **Automated reproduction:** `repro.js`
-- **Evidence:** [03-disabled.png](example/evidence/AC-4/03-disabled.png) · [04-disabled-after-reload-replay.png](example/evidence/AC-4/04-disabled-after-reload-replay.png) · `trace.zip` · `api-01.json` · `network.txt`
+- **Evidence:** [03-disabled.png](example/screenshots/AC-4-03-disabled.png) · [04-disabled-after-reload-replay.png](example/screenshots/AC-4-04-disabled-after-reload-replay.png) · `trace.zip` · `api-01.json` · `network.txt`
 
-![03-disabled.png](example/evidence/AC-4/03-disabled.png)
-![04-disabled-after-reload-replay.png](example/evidence/AC-4/04-disabled-after-reload-replay.png)
+![03-disabled.png](example/screenshots/AC-4-03-disabled.png)
+![04-disabled-after-reload-replay.png](example/screenshots/AC-4-04-disabled-after-reload-replay.png)
 
 ### F-2 · ❌ BUG (high) [functional] — A slow 'All' response overwrites the newer filter: select shows Disabled, table shows all users (cause of EX-1 FAIL)
 - **Steps:** 1. As Administrator open http://localhost:4317/users?status=all 2. Within ~0.7 s (before the list loads) select Status = Disabled 3. Wait 2 s
@@ -60,10 +60,10 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 - **Hypothesis (unverified):** Responses of superseded requests are not ignored or aborted (unverified).
 - **Reproduced:** 2× · **Related to the change:** yes
 - **Automated reproduction:** `repro.js`
-- **Evidence:** [01-stale-all-overwrites-disabled.png](example/evidence/EX-1/01-stale-all-overwrites-disabled.png) · [02-stale-all-overwrites-active-midsession.png](example/evidence/EX-1/02-stale-all-overwrites-active-midsession.png) · `trace.zip` · `network.txt`
+- **Evidence:** [01-stale-all-overwrites-disabled.png](example/screenshots/EX-1-01-stale-all-overwrites-disabled.png) · [02-stale-all-overwrites-active-midsession.png](example/screenshots/EX-1-02-stale-all-overwrites-active-midsession.png) · `trace.zip` · `network.txt`
 
-![01-stale-all-overwrites-disabled.png](example/evidence/EX-1/01-stale-all-overwrites-disabled.png)
-![02-stale-all-overwrites-active-midsession.png](example/evidence/EX-1/02-stale-all-overwrites-active-midsession.png)
+![01-stale-all-overwrites-disabled.png](example/screenshots/EX-1-01-stale-all-overwrites-disabled.png)
+![02-stale-all-overwrites-active-midsession.png](example/screenshots/EX-1-02-stale-all-overwrites-active-midsession.png)
 
 ### F-3 · ❌ BUG (medium) [functional] — A link with an invalid ?status value shows an empty table with no message and throws an uncaught TypeError
 - **Steps:** 1. As Administrator open http://localhost:4317/users?status=xyz (the API also rejects 'Disabled' and 'DISABLED' with 400)
@@ -71,9 +71,9 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 - **Actual:** GET /api/users?status=xyz returns 400; the page shows a blank Status select, no counter, an empty table and no message. Uncaught page error: "TypeError: Cannot read properties of undefined (reading 'map') at render (http://localhost:4317/app.js:10:6)". Selecting a filter in the select recovers the list.
 - **Hypothesis (unverified):** render() expects a users array and does not handle error responses; likely the same cause as F-5 and F-6 (unverified).
 - **Reproduced:** 2× · **Related to the change:** yes
-- **Evidence:** [03-invalid-status-link.png](example/evidence/EX-1/03-invalid-status-link.png) · `trace.zip` · `console.txt`
+- **Evidence:** [03-invalid-status-link.png](example/screenshots/EX-1-03-invalid-status-link.png) · `trace.zip` · `console.txt`
 
-![03-invalid-status-link.png](example/evidence/EX-1/03-invalid-status-link.png)
+![03-invalid-status-link.png](example/screenshots/EX-1-03-invalid-status-link.png)
 
 ### F-5 · ❌ BUG (medium) [functional] — When /api/users fails (500) the old list stays under the new filter with no message, and an uncaught TypeError is thrown
 - **Steps:** 1. As Administrator open http://localhost:4317/users?status=all and wait for 10 users 2. Make GET /api/users* return 500 (mock) 3. Select Status = Disabled
@@ -82,10 +82,10 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 - **Hypothesis (unverified):** No error handling around the list fetch; same TypeError as F-3 and F-6 (unverified).
 - **Reproduced:** 2× · **Related to the change:** yes
 - **Automated reproduction:** `repro.js`
-- **Evidence:** [01-500-on-filter-change.png](example/evidence/EX-2/01-500-on-filter-change.png) · [02-500-on-initial-load.png](example/evidence/EX-2/02-500-on-initial-load.png) · [06-offline-filter-change.png](example/evidence/EX-2/06-offline-filter-change.png) · `trace.zip` · `console.txt`
+- **Evidence:** [01-500-on-filter-change.png](example/screenshots/EX-2-01-500-on-filter-change.png) · [02-500-on-initial-load.png](example/screenshots/EX-2-02-500-on-initial-load.png) · [06-offline-filter-change.png](example/screenshots/EX-2-06-offline-filter-change.png) · `trace.zip` · `console.txt`
 
-![02-500-on-initial-load.png](example/evidence/EX-2/02-500-on-initial-load.png)
-![06-offline-filter-change.png](example/evidence/EX-2/06-offline-filter-change.png)
+![02-500-on-initial-load.png](example/screenshots/EX-2-02-500-on-initial-load.png)
+![06-offline-filter-change.png](example/screenshots/EX-2-06-offline-filter-change.png)
 
 ### F-6 · ❌ BUG (medium) [functional] — Expired session: a filter change gets 401 but the page neither redirects to sign-in nor shows a message; the old list stays
 - **Steps:** 1. As Administrator open http://localhost:4317/users?status=all and wait for 10 users 2. End the session in the own browser context (cookie-clear), as after the 30-minute expiry 3. Select Status = Disabled (or Active)
@@ -93,26 +93,26 @@ Findings: 1 critical · 1 high · 3 medium · 1 question
 - **Actual:** GET /api/users?status=disabled returns 401 {"error":"unauthorized"}. The page stays on /users?status=disabled with banner 'Administrator', the previous All list (10 rows) and counter '10 users', no redirect, no message; uncaught "TypeError: Cannot read properties of undefined (reading 'map')". Replayed with Active: identical. Only a manual reload redirects to /login.
 - **Hypothesis (unverified):** The client does not treat 401 from /api/users as a sign-out; same TypeError as F-3 and F-5 (unverified).
 - **Reproduced:** 2× · **Related to the change:** yes
-- **Evidence:** [03-expired-session-filter-change.png](example/evidence/EX-2/03-expired-session-filter-change.png) · [04-expired-session-reload.png](example/evidence/EX-2/04-expired-session-reload.png) · [05-expired-session-replay-active.png](example/evidence/EX-2/05-expired-session-replay-active.png) · `trace.zip` · `console.txt`
+- **Evidence:** [03-expired-session-filter-change.png](example/screenshots/EX-2-03-expired-session-filter-change.png) · [04-expired-session-reload.png](example/screenshots/EX-2-04-expired-session-reload.png) · [05-expired-session-replay-active.png](example/screenshots/EX-2-05-expired-session-replay-active.png) · `trace.zip` · `console.txt`
 
-![04-expired-session-reload.png](example/evidence/EX-2/04-expired-session-reload.png)
-![05-expired-session-replay-active.png](example/evidence/EX-2/05-expired-session-replay-active.png)
+![04-expired-session-reload.png](example/screenshots/EX-2-04-expired-session-reload.png)
+![05-expired-session-replay-active.png](example/screenshots/EX-2-05-expired-session-replay-active.png)
 
 ### F-4 · ❓ QUESTION [visual] — At 375 px the users table is 545 px wide: the page scrolls horizontally and Store/Status are off-screen
 - **Steps:** 1. As Administrator open http://localhost:4317/users?status=all 2. Resize the viewport to 375x812
 - **Expected:** Not specified by the ticket; plausibly the filtered list, including the Status column, is readable on a phone without horizontal page scroll
 - **Actual:** The new Status select and counter fit (select at x 16-118). The table spans x 16-545, document scrollWidth 545 at viewport 375, so Store and Status columns are cut off in the screenshot.
 - **Related to the change:** unknown
-- **Evidence:** [04-mobile-375.png](example/evidence/EX-1/04-mobile-375.png)
+- **Evidence:** [04-mobile-375.png](example/screenshots/EX-1-04-mobile-375.png)
 
-![04-mobile-375.png](example/evidence/EX-1/04-mobile-375.png)
+![04-mobile-375.png](example/screenshots/EX-1-04-mobile-375.png)
 
 ## Exploratory and regression checks
 
 | # | Goal | Result | Evidence / notes |
 |---|---|---|---|
-| EX-1 | Fast filter changes right after the page loads | ❌ FAIL | Select = 'Disabled', URL ?status=disabled, but counter '10 users' and the table shows all 10 users (6 Active, 4 Disabled). Network order: G… [01-stale-all-overwrites-disabled.png](example/evidence/EX-1/01-stale-all-overwrites-disabled.png) |
-| EX-2 | API errors and an expired session while using the filter | ❌ FAIL | 500 on filter change: select 'Disabled', URL ?status=disabled, the table keeps the previous All list (10 rows incl. 6 Active), counter '10 … [01-500-on-filter-change.png](example/evidence/EX-2/01-500-on-filter-change.png) |
+| EX-1 | Fast filter changes right after the page loads | ❌ FAIL | Select = 'Disabled', URL ?status=disabled, but counter '10 users' and the table shows all 10 users (6 Active, 4 Disabled). Network order: G… [01-stale-all-overwrites-disabled.png](example/screenshots/EX-1-01-stale-all-overwrites-disabled.png) |
+| EX-2 | API errors and an expired session while using the filter | ❌ FAIL | 500 on filter change: select 'Disabled', URL ?status=disabled, the table keeps the previous All list (10 rows incl. 6 Active), counter '10 … [01-500-on-filter-change.png](example/screenshots/EX-2-01-500-on-filter-change.png) |
 
 ## Console errors (all cases)
 

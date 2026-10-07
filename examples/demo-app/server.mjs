@@ -104,7 +104,7 @@ const usersPage = (session) => `<!doctype html>
 </body></html>`;
 
 const server = createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  const url = new URL(req.url, 'http://localhost'); // only the path and query are used
   const session = getSession(req);
 
   if (url.pathname === '/style.css' || url.pathname === '/app.js') {
@@ -120,9 +120,9 @@ const server = createServer(async (req, res) => {
     if (!account || account.password !== form.get('password')) {
       return send(res, 401, loginPage('Invalid username or password.'));
     }
-    const token = randomUUID();
-    sessions.set(token, { ...account, expires: Date.now() + SESSION_TTL_MS });
-    return send(res, 302, '', { Location: '/users', 'Set-Cookie': `demo_session=${token}; HttpOnly; Path=/; SameSite=Lax` });
+    const id = randomUUID();
+    sessions.set(id, { ...account, expires: Date.now() + SESSION_TTL_MS });
+    return send(res, 302, '', { Location: '/users', 'Set-Cookie': `demo_session=${id}; HttpOnly; Path=/; SameSite=Lax` });
   }
 
   if (url.pathname === '/login') return send(res, 200, loginPage());
